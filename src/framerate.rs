@@ -1,6 +1,7 @@
 use crate::errors::FramerateParseError;
 use crate::framerate_parse::FramerateSource;
 use num::ToPrimitive;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -8,7 +9,7 @@ use std::fmt::Formatter;
 use num::Rational64;
 
 /// The type of NTSC standard a [Framerate] adheres to.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Ntsc {
     /// This [Framerate] is not NTSC.
     None,
@@ -53,7 +54,7 @@ pub type FramerateParseResult = Result<Framerate, FramerateParseError>;
 /// The rate at which a video file frames are played back.
 ///
 /// Framerate is measured in frames-per-second (24/1 = 24 frames-per-second).
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Framerate {
     value: num::Rational64,
     ntsc: Ntsc,
