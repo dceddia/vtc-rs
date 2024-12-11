@@ -904,47 +904,34 @@ impl Neg for Timecode {
 ///
 /// ***WARNING:*** This method will panic if passed a non-drop-frame framerate.
 fn frame_num_to_drop_num(frame_number: i64, rate: Framerate) -> i64 {
-    // Get the timebase as an i64. NTSC timebases are always whole-frame.
-    let timebase = rate.timebase().to_integer();
+    let framerate = rate.playback().to_f64().unwrap();
+    let mut frame_number = frame_number;
 
-    // Get the number frames-per-minute at the whole-frame rate.
-    let frames_per_minute = timebase * 60;
-    // Get the number of frames we need to drop each time we drop frames (ex: 2 f or 29.97).
-    let drop_frames = rate.drop_frames().unwrap();
+    // Number of frames to drop on the minute marks is the nearest integer to 6% of the framerate
+    let drop_frames = (framerate * 0.066666).round() as i64;
 
-    // Get the number of frames are in a minute where we have dropped frames at the
-    // beginning.
-    let frames_per_minute_drop = (timebase * 60) - drop_frames;
-    // Get the number of actual frames in a 10-minute span for drop frame timecode. Since
-    // we drop 9 times in 10 minute, it will be 9 drop-minute frame counts + 1 whole-minute
-    // frame count.
-    let frames_per_10minutes_drop = frames_per_minute_drop * 9 + frames_per_minute;
+    // Calculate various frame counts
+    let frames_per_hour = (framerate * 60.0 * 60.0).round() as i64;
+    let frames_per_24_hours = frames_per_hour * 24;
+    let frames_per_10_minutes = (framerate * 60.0 * 10.0).round() as i64;
+    let frames_per_minute = (framerate.round() * 60.0) as i64 - drop_frames;
 
-    // Get the number of 10s of minutes in this count, and the remaining frames.
-    let result = div_mod_floor(frame_number, frames_per_10minutes_drop);
-    let tens_of_minutes = result.0;
-    let mut frames = result.1;
+    // Handle negative frame numbers by adding 24 hours worth of frames
+    while frame_number < 0 {
+        frame_number = frames_per_24_hours + frame_number;
+    }
 
-    // Create an adjustment for the number of 10s of minutes. It will be 9 times the
-    // drop value (we drop for the first 9 minutes, then leave the 10th alone).
-    let mut adjustment = 9 * drop_frames * tens_of_minutes;
+    // If framenumber is greater than 24 hrs, rollover clock
+    frame_number = frame_number % frames_per_24_hours;
 
-    // If our remaining frames are less than a whole minute, we aren't going to drop
-    // again. Add the adjustment and return.
-    if frames < frames_per_minute {
-        return frame_number + adjustment;
-    };
+    // Calculate d and m
+    let d = frame_number / frames_per_10_minutes;
+    let m = frame_number % frames_per_10_minutes;
 
-    // Remove the first full minute (we don't drop until the next minute) and add the
-    // drop-rate to the adjustment.
-    frames -= timebase;
-    adjustment += drop_frames;
-
-    // Get the number of remaining drop-minutes present, and add a drop adjustment for
-    // each.
-    let minutes_drop = frames / frames_per_minute_drop;
-    adjustment += minutes_drop * drop_frames;
-
-    // Return our original frame number adjusted by our calculated adjustment.
-    frame_number + adjustment
+    // If m is greater than dropFrames, we need to add some frames
+    if m > drop_frames {
+        frame_number + (drop_frames * 9 * d) + drop_frames * ((m - drop_frames) / frames_per_minute)
+    } else {
+        frame_number + drop_frames * 9 * d
+    }
 }

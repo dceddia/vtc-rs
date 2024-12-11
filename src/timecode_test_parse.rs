@@ -622,6 +622,24 @@ mod test {
             premiere_ticks: -914456685542400,
         }
     )]
+    #[case::t04_45_41_23_f29_97_df(
+        ParseCase{
+            frames_sources: vec![
+                Box::new("04:45:41;23".to_string())
+            ],
+            seconds_sources: vec![
+            ],
+            ticks_sources: vec![
+            ],
+            rate: rates::F29_97_DF,
+            seconds: Rational64::new(514252739, 30000),
+            frames: 513739,
+            timecode: "04:45:41;23".to_string(),
+            runtime: "04:45:41.757966667".to_string(),
+            feet_and_frames: "32108+11".to_string(),
+            premiere_ticks: 4354280791660800,
+        }
+    )]
     // 59.94 DF CASES ------------
     // ---------------------------
     #[case::t00_00_00_00_f59_94_df(
@@ -831,7 +849,7 @@ mod test {
             rate: rates::F59_94_DF,
             seconds: Rational64::new(3662659, 60000),
             frames: 3659,
-            timecode: "00:01:01;07".to_string(),
+            timecode: "00:01:01;03".to_string(), // was ;07
             runtime: "00:01:01.044316667".to_string(),
             feet_and_frames: "228+11".to_string(),
             premiere_ticks: 15506233142400,
